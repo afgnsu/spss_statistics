@@ -1,0 +1,530 @@
+***********************************************************.
+***********SPSS基礎與應用考試答案**************************.
+*本文件為2013年中國人民大學商學院SPSS基礎與應用期末考試操作部分的命令文件.
+*使用前請替換相應的路徑「E:\工作\教學_人民大學\SPSS\考試數據」為你自己的文件路徑.
+*李丁  2013年6月18日.
+*命令經過SPSS20.0測試.
+***********************************************************.
+***********************************************************.
+******任務一：讀入文本數據並與現有的spss數據合併.
+***********************************************************.
+***********************************************************.
+***本題的目的在於考察學生讀入數據操作和合併數據操作。掌握數據讀入的關鍵原理和技巧.
+***根據題目提供的信息，文本數據為固定寬度格式,且後面的合併為增加案例而非增加變量.
+***增加案例的合併應該保證各個變量的名稱與格式對應，這與合併變量時保證ID變量匹配不一樣.
+***在讀入文件應該注意選擇文件格式為固定格式.
+***讀入文件時應該注意修改各個變量的變量名，以及變量對應的字符寬度。尤其是最後有一個變量ID的寬度為4.
+***在預覽中最後兩個變量連到一塊了。需要手工分開，否則會出錯.
+
+***(1)第一步讀入固定寬度文本數據.
+GET DATA
+  /TYPE=TXT
+  /FILE="E:\工作\教學_人民大學\SPSS\考試數據\customer02.dat"
+  /FIXCASE=1
+  /ARRANGEMENT=FIXED
+  /FIRSTCASE=1
+  /IMPORTCASE=ALL
+  /VARIABLES=
+  /1 townsize 0-3 F4.0
+  gender 4-7 F4.0
+ age 8-11 F4.0
+  agecat 12-15 F4.0
+  ed 16-19 F4.0
+  edcat 20-23 F4.0
+  jobcat 24-27 F4.0
+  employ 28-31 F4.0
+  retire 32-35 F4.0
+  income 36-43 F8.2
+  inccat 44-47 F4.0
+  marital 48-51 F4.0
+  spoused 52-55 F4.0
+  ID 56-59 F4.0.
+CACHE.
+EXECUTE.
+***(2)保存.
+SAVE OUTFILE='E:\工作\教學_人民大學\SPSS\考試數據\customer02.sav'
+  /COMPRESSED.
+
+***(3)打開主數據，合併上面已經導入的數據，並且保存合併數據.
+GET 
+  FILE='E:\工作\教學_人民大學\SPSS\考試數據\customer01.sav'. 
+DATASET NAME 數據集1 WINDOW=FRONT.
+***(4)合併前面已經讀入的數據.
+DATASET ACTIVATE 數據集1.
+ADD FILES /FILE=*
+  /FILE='E:\工作\教學_人民大學\SPSS\考試數據\customer02.sav'
+  /IN=來源.
+VARIABLE LABELS 來源 '來自customer02.sav'.
+EXECUTE.
+***(5)保存合併好的數據.
+SAVE OUTFILE='E:\工作\教學_人民大學\SPSS\考試數據\customer.sav'
+  /COMPRESSED.
+
+***********************************************************.
+***********************************************************.
+******任務二.補全變量和修改變量的屬性.
+***********************************************************.
+***********************************************************.
+***本題的目的在於考察學生創建變量和修改變量屬性的技能.
+***根據題目的意思costomer2中沒有spouedcat變量，改變量是spoused重編碼而來的。.
+***首先看看customer01中spoused和spousedcat之間的關係，從而找到recode的對應規則。.
+***(1)查看配偶教育年數與配偶教育水平的對應關係.
+CROSSTABS
+  /TABLES=spoused BY spousedcat
+  /FORMAT=AVALUE TABLES
+  /CELLS=COUNT
+  /COUNT ROUND CELL.
+***(2)可以看到，對配偶的教育年數進行分組是按照-1，3-11,12-14,15-16,17-19,20的方式進行的.
+***(3.1)填補缺失的變量.
+If(spoused=-1) spousedcat=-1.
+If(spoused>=3 and spoused<=11 )  spousedcat=1.
+If(spoused>=12 and spoused<=14 ) spousedcat=2.
+If(spoused>=15 and spoused<=16 ) spousedcat=3.
+If(spoused>=17 and spoused<=19 ) spousedcat=4.
+If(spoused>=20 and spoused<=24)  spousedcat=5.
+exe.
+***(3.2)如果使用recode變量生成spousedcat2。則命令如下：.
+RECODE spoused (-1=-1) (1 thru 11=1)(12 thru 14=2) (15 thru 16=3) (17 thru 19=4) (20 thru Highest=5) INTO spousedcat2.
+VARIABLE LABELS  spousedcat2 '配偶受教育水平'.
+VALUE LABELS spousedcat2
+  1 '高中以下'
+  2 '高中'
+  3 '大學未畢業'
+  4 '大學畢業'
+  5 '研究生'.
+EXECUTE.
+***(4) 將英文的變量變量和變量取值標籤換成中文.
+VARIABLE LABELS  edcat '教育水平'.
+VALUE LABELS edcat
+  1 '高中以下'
+  2 '高中'
+  3 '大學未畢業'
+  4 '大學畢業'
+  5 '研究生'.
+EXECUTE.
+
+***********************************************************.
+***********************************************************.
+*任務三.探索描述比較income和lninc的分佈
+***********************************************************.
+***********************************************************.
+*本題在於檢測學生探索變量分佈的能力，並兼顧compute和recode命令的測試.
+*連續變量的分佈探索可以使用直方圖和頻次表.
+*不過連續變量的頻次表通常太長，不建議使用，除非要查看極大值和極小值的情況.
+*(1)探索輸入的分佈形態.
+EXAMINE VARIABLES=income
+  /PLOT BOXPLOT STEMLEAF
+  /COMPARE GROUPS
+  /STATISTICS DESCRIPTIVES
+  /CINTERVAL 95
+  /MISSING LISTWISE
+  /NOTOTAL.
+*(2)用頻次表及附加的直方圖來查看分佈.
+*頻次表太長，不顯示.
+FREQUENCIES VARIABLES=income
+  /FORMAT=NOTABLE
+  /HISTOGRAM
+  /ORDER=ANALYSIS.
+
+*(3)使用畫直方圖來查看收入的分佈情況.
+GGRAPH
+  /GRAPHDATASET NAME="graphdataset" VARIABLES=income MISSING=LISTWISE REPORTMISSING=NO
+  /GRAPHSPEC SOURCE=INLINE.
+BEGIN GPL
+  SOURCE: s=userSource(id("graphdataset"))
+  DATA: income=col(source(s), name("income"))
+  GUIDE: axis(dim(1), label("家庭收入(千美元）"))
+  GUIDE: axis(dim(2), label("頻率"))
+  ELEMENT: interval(position(summary.count(bin.rect(income))), shape.interior(shape.square))
+END GPL.
+*可以看到原始收入變量的分佈呈現為右偏狀態，少數人的收入較高，收入差異大.
+*(4)創建收入的對數形式.
+compute lninc=ln(income).
+exe.
+*(5)查看新變量的分佈情況.
+*(5.1探索命令).
+EXAMINE VARIABLES=lninc
+  /PLOT BOXPLOT STEMLEAF
+  /COMPARE GROUPS
+  /STATISTICS DESCRIPTIVES
+  /CINTERVAL 95
+  /MISSING LISTWISE
+  /NOTOTAL.
+*(5.2頻數表、直方圖).
+FREQUENCIES VARIABLES=lninc
+  /FORMAT=NOTABLE
+  /HISTOGRAM
+  /ORDER=ANALYSIS.
+*(5.3直方圖).
+GGRAPH
+  /GRAPHDATASET NAME="graphdataset" VARIABLES=lninc MISSING=LISTWISE REPORTMISSING=NO
+  /GRAPHSPEC SOURCE=INLINE.
+BEGIN GPL
+  SOURCE: s=userSource(id("graphdataset"))
+  DATA: lninc=col(source(s), name("lninc"))
+  GUIDE: axis(dim(1), label("家庭收入對數"))
+  GUIDE: axis(dim(2), label("頻率"))
+  ELEMENT: interval(position(summary.count(bin.rect(lninc))), shape.interior(shape.square))
+END GPL.
+*(5.4分佈形態非參數檢驗).
+NPTESTS 
+  /ONESAMPLE TEST (lninc) KOLMOGOROV_SMIRNOV(NORMAL=SAMPLE ) 
+  /MISSING SCOPE=ANALYSIS USERMISSING=EXCLUDE
+  /CRITERIA ALPHA=0.05 CILEVEL=95.
+*可以看到對數化之後，lninc的分佈更加勻稱.
+*可以將兩個直方圖放在一起比較對數化前後分佈情況的變化.
+*甚至可以通過變量轉案例，將兩個直方圖畫在一個圖裡面。如果能夠做出來，學生對於spss的掌握已經非常到位.
+
+***********************************************************.
+***********************************************************.
+*任務4，統計檢驗.檢驗不同婚姻狀況和不同年齡的受訪者收入差異是否顯著
+***********************************************************.
+***********************************************************.
+*本題目的在於檢測學生對於T檢驗和方差分析的掌握情況.
+*同時檢驗學生的作圖能力與數據呈現能力.
+*(1)T檢驗－－檢驗已婚家庭和未婚家庭的收入差異.
+T-TEST GROUPS=marital(0 1)
+  /MISSING=ANALYSIS
+  /VARIABLES=lninc
+  /CRITERIA=CI(.95).
+
+*(2.1方法一)方差分析－－一元多因素命令.
+UNIANOVA lninc BY agecat
+  /METHOD=SSTYPE(3)
+  /INTERCEPT=INCLUDE
+  /PLOT=PROFILE(agecat)
+  /PRINT=HOMOGENEITY DESCRIPTIVE
+  /CRITERIA=ALPHA(.05)
+  /DESIGN=agecat.
+*(2.2方法二)方差分析－－oneway Anova.
+ONEWAY lninc BY agecat
+  /STATISTICS DESCRIPTIVES HOMOGENEITY 
+  /PLOT MEANS
+  /MISSING ANALYSIS.
+*除了直接比較均值外，學生還可以使用incat變量體通過列聯表的方式進行檢驗和探索.做得得當不扣分.
+*在呈現檢驗結果時，不需要將整個的統計檢驗表複製粘貼過來。結合描述性圖表呈現統計檢驗結果的呈現效果更好.
+***********************************************************.
+*可以結合箱圖、條形圖、線圖、列聯表等等如下.
+* 用箱圖比較已婚家庭和未婚家庭的收入差異.
+GGRAPH
+  /GRAPHDATASET NAME="graphdataset" VARIABLES=marital income MISSING=LISTWISE REPORTMISSING=NO
+  /GRAPHSPEC SOURCE=INLINE.
+BEGIN GPL
+  SOURCE: s=userSource(id("graphdataset"))
+  DATA: marital=col(source(s), name("marital"), unit.category())
+  DATA: income=col(source(s), name("income"))
+  DATA: id=col(source(s), name("$CASENUM"), unit.category())
+  GUIDE: axis(dim(1), label("婚姻狀況"))
+  GUIDE: axis(dim(2), label("家庭收入(千美元）"))
+  SCALE: cat(dim(1), include("0", "1"))
+  SCALE: linear(dim(2), include(0))
+  ELEMENT: schema(position(bin.quantile.letter(marital*income)), label(id))
+END GPL.
+
+* 用條形圖比較已婚家庭和未婚家庭的收入差異.
+GGRAPH
+  /GRAPHDATASET NAME="graphdataset" VARIABLES=marital MEAN(income)[name="MEAN_income"] 
+    MISSING=LISTWISE REPORTMISSING=NO
+  /GRAPHSPEC SOURCE=INLINE.
+BEGIN GPL
+  SOURCE: s=userSource(id("graphdataset"))
+  DATA: marital=col(source(s), name("marital"), unit.category())
+  DATA: MEAN_income=col(source(s), name("MEAN_income"))
+  GUIDE: axis(dim(1), label("婚姻狀況"))
+  GUIDE: axis(dim(2), label("均值(M) 家庭收入(千美元）"))
+  SCALE: cat(dim(1), include("0", "1"))
+  SCALE: linear(dim(2), include(0))
+  ELEMENT: interval(position(marital*MEAN_income), shape.interior(shape.square))
+END GPL.
+
+* 設使用列聯表的形式來呈現已婚家庭和未婚家庭收入的差異.
+CTABLES
+  /VLABELS VARIABLES=marital inccat DISPLAY=DEFAULT
+  /TABLE marital BY inccat [ROWPCT.COUNT PCT40.1, TOTALS[ROWPCT.COUNT PCT40.1, COUNT F40.0]]
+  /CATEGORIES VARIABLES=marital inccat ORDER=A KEY=VALUE EMPTY=INCLUDE TOTAL=YES POSITION=AFTER.
+***********************************************************.
+* 用箱圖比較不同年齡組的收入差異.
+GGRAPH
+  /GRAPHDATASET NAME="graphdataset" VARIABLES=agecat income MISSING=LISTWISE REPORTMISSING=NO
+  /GRAPHSPEC SOURCE=INLINE.
+BEGIN GPL
+  SOURCE: s=userSource(id("graphdataset"))
+  DATA: agecat=col(source(s), name("agecat"), unit.category())
+  DATA: income=col(source(s), name("income"))
+  DATA: id=col(source(s), name("$CASENUM"), unit.category())
+  GUIDE: axis(dim(1), label("年齡組"))
+  GUIDE: axis(dim(2), label("家庭收入(千美元）"))
+  SCALE: cat(dim(1), include("2", "3", "4", "5", "6"))
+  SCALE: linear(dim(2), include(0))
+  ELEMENT: schema(position(bin.quantile.letter(agecat*income)), label(id))
+END GPL.
+
+* 用條形圖比較不同年齡組的收入差異.
+GGRAPH
+  /GRAPHDATASET NAME="graphdataset" VARIABLES=agecat MEAN(income)[name="MEAN_income"] 
+    MISSING=LISTWISE REPORTMISSING=NO
+  /GRAPHSPEC SOURCE=INLINE.
+BEGIN GPL
+  SOURCE: s=userSource(id("graphdataset"))
+  DATA: agecat=col(source(s), name("agecat"), unit.category())
+  DATA: MEAN_income=col(source(s), name("MEAN_income"))
+  GUIDE: axis(dim(1), label("年齡組"))
+  GUIDE: axis(dim(2), label("均值(M) 家庭收入(千美元）"))
+  SCALE: cat(dim(1), include("2", "3", "4", "5", "6"))
+  SCALE: linear(dim(2), include(0))
+  ELEMENT: interval(position(agecat*MEAN_income), shape.interior(shape.square))
+END GPL.
+
+*使用線圖來呈現不同年齡組的收入差異.
+GGRAPH
+  /GRAPHDATASET NAME="graphdataset" VARIABLES=agecat MEAN(income)[name="MEAN_income"] 
+    MISSING=LISTWISE REPORTMISSING=NO
+  /GRAPHSPEC SOURCE=INLINE.
+BEGIN GPL
+  SOURCE: s=userSource(id("graphdataset"))
+  DATA: agecat=col(source(s), name("agecat"), unit.category())
+  DATA: MEAN_income=col(source(s), name("MEAN_income"))
+  GUIDE: axis(dim(1), label("年齡組"))
+  GUIDE: axis(dim(2), label("均值(M) 家庭收入(千美元）"))
+  SCALE: cat(dim(1), include("2", "3", "4", "5", "6"))
+  SCALE: linear(dim(2), include(0))
+  ELEMENT: line(position(agecat*MEAN_income), missing.wings())
+END GPL.
+*還可以使用線圖來呈現不同年齡－－而非年齡組的收入差異.
+GGRAPH
+  /GRAPHDATASET NAME="graphdataset" VARIABLES=age MEAN(income)[name="MEAN_income"] MISSING=LISTWISE 
+    REPORTMISSING=NO
+  /GRAPHSPEC SOURCE=INLINE.
+BEGIN GPL
+  SOURCE: s=userSource(id("graphdataset"))
+  DATA: age=col(source(s), name("age"))
+  DATA: MEAN_income=col(source(s), name("MEAN_income"))
+  GUIDE: axis(dim(1), label("年齡"))
+  GUIDE: axis(dim(2), label("均值(M) 家庭收入(千美元）"))
+  ELEMENT: line(position(age*MEAN_income), missing.wings())
+END GPL.
+
+* 設使用列聯表的形式來呈現不同年齡組的收入差異.
+CTABLES
+  /VLABELS VARIABLES=agecat inccat DISPLAY=DEFAULT
+  /TABLE agecat [C] BY inccat [C][ROWPCT.COUNT PCT40.1, TOTALS[ROWPCT.COUNT PCT40.1, COUNT F40.0]]
+  /CATEGORIES VARIABLES=agecat [2, 3, 4, 5, 6] EMPTY=INCLUDE TOTAL=YES POSITION=AFTER
+  /CATEGORIES VARIABLES=inccat ORDER=A KEY=VALUE EMPTY=INCLUDE TOTAL=YES POSITION=AFTER.
+* 設使用表格來呈現不同年齡組的收入差異.
+CTABLES
+  /VLABELS VARIABLES=agecat DISPLAY=NONE  /VLABELS VARIABLES=income DISPLAY=DEFAULT
+  /TABLE agecat [C] BY income [MEAN, COUNT F40.0]
+  /CATEGORIES VARIABLES=agecat [2, 3, 4, 5, 6] EMPTY=INCLUDE TOTAL=YES POSITION=AFTER.
+
+***********************************************************.
+***********************************************************.
+*任務5，什麼會影響收入？.
+***********************************************************.
+***********************************************************.
+*首先，應該注意到數據中還有很多其他的變量可以使用。如果沒有發現其他的變量，說明數據分析的意識不到位.
+*可以先探索一下數據中相關變量的分佈情況.
+FREQUENCIES VARIABLES=townsize gender ed edcat jobcat employ retire inccat marital spousedcat
+  /FORMAT=NOTABLE
+  /BARCHART FREQ
+  /ORDER=ANALYSIS.
+
+*從問題出發，什麼會影響收入呢？除了前面已經檢驗過的婚姻狀況和年齡外。.
+*可以看到城市人口規模、性別、教育水平、工作類型、工作年數、是否退休等等變量都值得關注.
+*基於目前的知識可以使用T檢驗、Oneway-Anova,一元多因素方差分析，相關分析，簡單回歸分析，列聯表等等探索上述變量對於收入的影響.
+***********************************************************.
+*(5.1)使用表格來呈現不同特徵的受訪者的平均家庭收入的差異.
+*下面的表格內容非常「密集」-適合一次探索多個變量，但正式報告呈現時不適合使用.
+*均值-標準差-樣本數表格.
+CTABLES
+  /VLABELS VARIABLES=townsize gender edcat jobcat retire income DISPLAY=DEFAULT
+  /TABLE townsize [C] + gender [C] + edcat [C] + jobcat [C] + retire [C] BY income [S][MEAN, 
+    STDDEV, COUNT F40.0]
+  /CATEGORIES VARIABLES=townsize gender edcat jobcat ORDER=A KEY=VALUE EMPTY=INCLUDE
+  /CATEGORIES VARIABLES=retire ORDER=A KEY=VALUE EMPTY=INCLUDE TOTAL=YES POSITION=AFTER.
+*收入分組列聯表.
+CTABLES
+  /VLABELS VARIABLES=townsize gender edcat jobcat retire inccat DISPLAY=DEFAULT
+  /TABLE townsize [C] + gender [C] + edcat [C] + jobcat [C] + retire [C] BY inccat [ROWPCT.COUNT 
+    PCT40.1, TOTALS[ROWPCT.COUNT PCT40.1, COUNT]]
+  /CATEGORIES VARIABLES=townsize gender edcat jobcat ORDER=A KEY=VALUE EMPTY=INCLUDE
+  /CATEGORIES VARIABLES=retire inccat ORDER=A KEY=VALUE EMPTY=INCLUDE TOTAL=YES POSITION=AFTER.
+***********************************************************.
+*(5.2)用條形圖的形式來呈現各類受訪者的平均家庭收入的差異.
+
+*不同城市規模.
+GGRAPH
+  /GRAPHDATASET NAME="graphdataset" VARIABLES=townsize MEAN(income)[name="MEAN_income"] 
+    MISSING=LISTWISE REPORTMISSING=NO
+  /GRAPHSPEC SOURCE=INLINE.
+BEGIN GPL
+  SOURCE: s=userSource(id("graphdataset"))
+  DATA: townsize=col(source(s), name("townsize"), unit.category())
+  DATA: MEAN_income=col(source(s), name("MEAN_income"))
+  GUIDE: axis(dim(1), label("城鎮人口規模"))
+  GUIDE: axis(dim(2), label("均值(M) 家庭收入(千美元）"))
+  SCALE: cat(dim(1), include("1", "2", "3", "4", "5"))
+  SCALE: linear(dim(2), include(0))
+  ELEMENT: interval(position(townsize*MEAN_income), shape.interior(shape.square))
+END GPL.
+
+* 不同性別.
+GGRAPH
+  /GRAPHDATASET NAME="graphdataset" VARIABLES=gender MEAN(income)[name="MEAN_income"] 
+    MISSING=LISTWISE REPORTMISSING=NO
+  /GRAPHSPEC SOURCE=INLINE.
+BEGIN GPL
+  SOURCE: s=userSource(id("graphdataset"))
+  DATA: gender=col(source(s), name("gender"), unit.category())
+  DATA: MEAN_income=col(source(s), name("MEAN_income"))
+  GUIDE: axis(dim(1), label("性別"))
+  GUIDE: axis(dim(2), label("均值(M) 家庭收入(千美元）"))
+  SCALE: cat(dim(1), include("0", "1"))
+  SCALE: linear(dim(2), include(0))
+  ELEMENT: interval(position(gender*MEAN_income), shape.interior(shape.square))
+END GPL.
+
+*不同受教育水平.
+GGRAPH
+  /GRAPHDATASET NAME="graphdataset" VARIABLES=edcat MEAN(income)[name="MEAN_income"] 
+    MISSING=LISTWISE REPORTMISSING=NO
+  /GRAPHSPEC SOURCE=INLINE.
+BEGIN GPL
+  SOURCE: s=userSource(id("graphdataset"))
+  DATA: edcat=col(source(s), name("edcat"), unit.category())
+  DATA: MEAN_income=col(source(s), name("MEAN_income"))
+  GUIDE: axis(dim(1), label("教育水平"))
+  GUIDE: axis(dim(2), label("均值(M) 家庭收入(千美元）"))
+  SCALE: cat(dim(1), include("1", "2", "3", "4", "5"))
+  SCALE: linear(dim(2), include(0))
+  ELEMENT: interval(position(edcat*MEAN_income), shape.interior(shape.square))
+END GPL.
+
+*受教育年數.
+GGRAPH
+  /GRAPHDATASET NAME="graphdataset" VARIABLES=ed MEAN(income)[name="MEAN_income"] MISSING=LISTWISE 
+    REPORTMISSING=NO
+  /GRAPHSPEC SOURCE=INLINE.
+BEGIN GPL
+  SOURCE: s=userSource(id("graphdataset"))
+  DATA: ed=col(source(s), name("ed"))
+  DATA: MEAN_income=col(source(s), name("MEAN_income"))
+  GUIDE: axis(dim(1), label("受教育年數"))
+  GUIDE: axis(dim(2), label("均值(M) 家庭收入(千美元）"))
+  ELEMENT: interval(position(ed*MEAN_income), shape.interior(shape.square))
+END GPL.
+
+* 不同工作類型.
+GGRAPH
+  /GRAPHDATASET NAME="graphdataset" VARIABLES=jobcat MEAN(income)[name="MEAN_income"] 
+    MISSING=LISTWISE REPORTMISSING=NO
+  /GRAPHSPEC SOURCE=INLINE.
+BEGIN GPL
+  SOURCE: s=userSource(id("graphdataset"))
+  DATA: jobcat=col(source(s), name("jobcat"), unit.category())
+  DATA: MEAN_income=col(source(s), name("MEAN_income"))
+  GUIDE: axis(dim(1), label("職業類型"))
+  GUIDE: axis(dim(2), label("均值(M) 家庭收入(千美元）"))
+  SCALE: cat(dim(1), include("1", "2", "3", "4", "5", "6"))
+  SCALE: linear(dim(2), include(0))
+  ELEMENT: interval(position(jobcat*MEAN_income), shape.interior(shape.square))
+END GPL.
+
+*是否退休.
+GGRAPH
+  /GRAPHDATASET NAME="graphdataset" VARIABLES=retire MEAN(income)[name="MEAN_income"] 
+    MISSING=LISTWISE REPORTMISSING=NO
+  /GRAPHSPEC SOURCE=INLINE.
+BEGIN GPL
+  SOURCE: s=userSource(id("graphdataset"))
+  DATA: retire=col(source(s), name("retire"), unit.category())
+  DATA: MEAN_income=col(source(s), name("MEAN_income"))
+  GUIDE: axis(dim(1), label("是否退休"))
+  GUIDE: axis(dim(2), label("均值(M) 家庭收入(千美元）"))
+  SCALE: cat(dim(1), include("0", "1"))
+  SCALE: linear(dim(2), include(0))
+  ELEMENT: interval(position(retire*MEAN_income), shape.interior(shape.square))
+END GPL.
+
+*工作年數.
+GGRAPH
+  /GRAPHDATASET NAME="graphdataset" VARIABLES=employ MEAN(income)[name="MEAN_income"] 
+    MISSING=LISTWISE REPORTMISSING=NO
+  /GRAPHSPEC SOURCE=INLINE.
+BEGIN GPL
+  SOURCE: s=userSource(id("graphdataset"))
+  DATA: employ=col(source(s), name("employ"), unit.category())
+  DATA: MEAN_income=col(source(s), name("MEAN_income"))
+  GUIDE: axis(dim(1), label("當前工作工作年數"))
+  GUIDE: axis(dim(2), label("均值(M) 家庭收入(千美元）"))
+  SCALE: linear(dim(2), include(0))
+  ELEMENT: interval(position(employ*MEAN_income), shape.interior(shape.square))
+END GPL.
+***********************************************************.
+*(5.3)對各個組之間的差異進行統計檢驗.
+*城鎮規模.
+ONEWAY income BY townsize
+  /MISSING ANALYSIS.
+*性別.
+T-TEST GROUPS=gender(0 1)
+  /MISSING=ANALYSIS
+  /VARIABLES=income
+  /CRITERIA=CI(.95).
+*教育水平.
+ONEWAY income BY edcat
+  /MISSING ANALYSIS.
+*職業類型.
+ONEWAY income BY jobcat
+  /MISSING ANALYSIS.
+*是否退休.
+T-TEST GROUPS=retire(0 1)
+  /MISSING=ANALYSIS
+  /VARIABLES=income
+  /CRITERIA=CI(.95).
+
+***********************************************************.
+*(5.4)利用回歸模型綜合分析各種因素對於家庭收入的影響.
+*首先需要準備數據.
+*根據前面的探索發現收入與工作年限以及年齡之間有著曲線關係.
+*創建工作經歷的二次方.
+compute exp2=employ**2.
+*創建工作類別的虛擬變量.
+compute job1=0.
+compute job2=0.
+compute job3=0.
+compute job5=0.
+compute job6=0.
+if( jobcat=1) job1=1.
+if( jobcat=2) job2=1.
+if( jobcat=3) job3=1.
+if( jobcat=5) job5=1.
+if( jobcat=6) job6=1.
+exe.
+*回歸模型－－因為收入原始變量為偏態分佈，回歸分析時可以使用收入的對數值作為因變量。.
+
+REGRESSION
+  /MISSING LISTWISE
+  /STATISTICS COEFF OUTS R ANOVA
+  /CRITERIA=PIN(.05) POUT(.10)
+  /NOORIGIN 
+  /DEPENDENT lninc
+  /METHOD=ENTER townsize gender  marital  ed employ exp2 retire  job1 job2 job3 job5 job6.
+
+*回歸結果表明：在控制其他條件相同的情況下，受教育年數、工作年數、是否退休，以及工作類型對家庭收入有著顯著的影響。.
+*性別、城市規模影響不顯著，樣本中觀察到的差異很可能來自於隨機波動.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
